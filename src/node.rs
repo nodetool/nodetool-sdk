@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, rc::Rc};
 
 // NodeParameter is the data type for a parameter that a node can take in
 #[derive(Clone)]
@@ -30,5 +30,5 @@ pub trait Node {
 	fn eval(&self, inputs: Vec<Option<NodeParameter>>) -> Vec<NodeParameter>;
 }
 
-pub type AnyNode = Box<dyn Node>;
+pub type AnyNode = Rc<dyn Node>;
 pub type AnyError = Box<dyn Error>;
