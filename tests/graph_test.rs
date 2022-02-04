@@ -26,8 +26,18 @@ pub fn test_add() -> anyhow::Result<()> {
 	node_graph.connect(const1, 0, add_node, 0).unwrap();
 	node_graph.connect(const2, 0, add_node, 1).unwrap();
 
-	let output = node_graph.get_node_outputs(2)?;
+	let output = node_graph.get_node_outputs(add_node)?;
 	let data = inner::inner!(output.get(0).unwrap(), if NodeParameter::Number);
 	assert_eq!(*data, 2.0);
+
+	let const3 = new_const(&mut node_graph, 3.0);
+
+	node_graph.disconnect(add_node, 0).unwrap();
+	node_graph.connect(const3, 0, add_node, 0).unwrap();
+
+	let output = node_graph.get_node_outputs(add_node)?;
+	let data = inner::inner!(output.get(0).unwrap(), if NodeParameter::Number);
+	assert_eq!(*data, 4.0);
+
 	Ok(())
 }

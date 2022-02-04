@@ -17,6 +17,12 @@ pub enum NodeConnectError {
 }
 
 #[derive(Error, Debug)]
+pub enum NodeDisconnectError {
+	#[error("node not found")]
+	NodeNotFound,
+}
+
+#[derive(Error, Debug)]
 pub enum GetNodeOutputsError {
 	#[error("node not found")]
 	NodeNotFound,
@@ -53,7 +59,7 @@ impl NodeGraph {
 
 	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
 		let id = self.max_node_id;
-		self.nodes.insert(id, Rc::new(node));
+		let result = self.nodes.insert(id, Rc::new(node));
 		self.max_node_id += 1;
 		id
 	}
@@ -91,6 +97,20 @@ impl NodeGraph {
 		self.outputs.insert(node_id, result.clone());
 
 		Ok(result)
+	}
+
+	pub fn disconnect(
+		&mut self,
+		target_node: u64,
+		target_index: usize,
+	) -> Result<(), NodeDisconnectError> {
+		self.links
+			.remove(&(target_node, target_index))
+			.ok_or(NodeDisconnectError::NodeNotFound)?;
+
+		self.invalidate_node(target_node);
+
+		Ok(())
 	}
 
 	pub fn connect(
