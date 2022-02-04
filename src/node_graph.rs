@@ -31,12 +31,14 @@ pub enum GetNodeInputsError {
 /// A graph containing nodes.
 /// Each node is assigned a unique ID which is used in hashmaps and connections.
 pub struct NodeGraph {
-	nodes: HashMap<u64, AnyNode>,
+	pub nodes: HashMap<u64, AnyNode>,
 	/// mapping of node connections.
 	/// key is the node ID and index of the target node, value is the node ID and index of the source node.
-	links: HashMap<(u64, usize), (u64, usize)>,
+	pub links: HashMap<(u64, usize), (u64, usize)>,
 	// cache of node outputs.
-	outputs: HashMap<u64, Rc<Vec<NodeParameter>>>,
+	pub outputs: HashMap<u64, Rc<Vec<NodeParameter>>>,
+	// highest node ID.
+	pub max_node_id: u64,
 }
 
 impl NodeGraph {
@@ -45,11 +47,15 @@ impl NodeGraph {
 			nodes: HashMap::new(),
 			links: HashMap::new(),
 			outputs: HashMap::new(),
+			max_node_id: 0,
 		}
 	}
 
-	pub fn add<T: Node + 'static>(&mut self, node: T, node_id: u64) -> Option<AnyNode> {
-		self.nodes.insert(node_id, Rc::new(node))
+	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
+		let id = self.max_node_id;
+		self.nodes.insert(id, Rc::new(node));
+		self.max_node_id += 1;
+		id
 	}
 
 	pub fn invalidate_node(&mut self, node_id: u64) {
