@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::discriminant, rc::Rc};
 
 use thiserror::Error;
 
-use crate::node::{AnyNode, NodeParameter};
+use crate::node::{AnyNode, Node, NodeParameter};
 
 #[derive(Error, Debug)]
 pub enum NodeConnectError {
@@ -22,6 +22,12 @@ pub enum GetNodeOutputsError {
 	NodeNotFound,
 }
 
+#[derive(Error, Debug)]
+pub enum GetNodeInputsError {
+	#[error("node not found")]
+	NodeNotFound,
+}
+
 /// A graph containing nodes.
 /// Each node is assigned a unique ID which is used in hashmaps and connections.
 pub struct NodeGraph {
@@ -34,6 +40,22 @@ pub struct NodeGraph {
 }
 
 impl NodeGraph {
+	pub fn new() -> Self {
+		Self {
+			nodes: HashMap::new(),
+			links: HashMap::new(),
+			outputs: HashMap::new(),
+		}
+	}
+
+	pub fn add<T: Node + 'static>(&mut self, node: T, node_id: u64) -> Option<AnyNode> {
+		self.nodes.insert(node_id, Rc::new(node))
+	}
+
+	pub fn invalidate_node(&mut self, node_id: u64) {
+		self.outputs.remove(&node_id);
+	}
+
 	pub fn get_node_outputs(
 		&mut self,
 		node_id: u64,
@@ -42,7 +64,6 @@ impl NodeGraph {
 			return Ok(outputs);
 		}
 
-		// TODO: solve lifetime bullshit and make this only get the node once
 		let node = self
 			.nodes
 			.get(&node_id)
@@ -69,8 +90,8 @@ impl NodeGraph {
 	pub fn connect(
 		&mut self,
 		from: u64,
-		to: u64,
 		from_index: usize,
+		to: u64,
 		to_index: usize,
 	) -> Result<(), NodeConnectError> {
 		if from == to {

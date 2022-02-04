@@ -3,10 +3,20 @@ use std::{error::Error, rc::Rc};
 // NodeParameter is the data type for a parameter that a node can take in
 #[derive(Clone)]
 pub enum NodeParameter {
-	IntArray(Option<Vec<i64>>),
-	Float64Array(Option<Vec<f64>>),
-	String(Option<String>),
-	Number(Option<f64>),
+	IntArray(Vec<i64>),
+	Float64Array(Vec<f64>),
+	String(String),
+	Number(f64),
+	Node(AnyNode),
+	None,
+}
+
+pub enum NodeParameterType {
+	IntArray,
+	Float64Array,
+	String,
+	Number,
+	Node,
 	None,
 }
 
@@ -14,7 +24,7 @@ pub enum NodeParameter {
 pub struct NodeParameterDescriptor<'a> {
 	pub name: &'a str,
 	pub description: &'a str,
-	pub parameter_type: NodeParameter,
+	pub parameter_type: NodeParameterType,
 }
 
 pub trait Node {
