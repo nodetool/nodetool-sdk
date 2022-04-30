@@ -1,13 +1,34 @@
 use crate::{
 	extract_inputs,
-	node::{Node, NodeParameter, NodeParameterDescriptor, NodeParameterType},
+	node::{Node, NodeParameter, NodeParameterDescriptor, NodeParameterType, NodeResult},
 };
 
-pub struct Add {}
+pub struct Add {
+	inputs: Vec<NodeParameterDescriptor>,
+	outputs: Vec<NodeParameterDescriptor>,
+}
 
 impl Add {
 	pub fn new() -> Self {
-		Self {}
+		Self {
+			inputs: vec![
+				NodeParameterDescriptor::new(
+					"first",
+					"The first input value",
+					NodeParameterType::Number,
+				),
+				NodeParameterDescriptor::new(
+					"second",
+					"The second input value",
+					NodeParameterType::Number,
+				),
+			],
+			outputs: vec![NodeParameterDescriptor::new(
+				"value",
+				"The output value",
+				NodeParameterType::Number,
+			)],
+		}
 	}
 }
 
@@ -18,34 +39,16 @@ impl Default for Add {
 }
 
 impl Node for Add {
-	fn inputs(&self) -> Vec<crate::node::NodeParameterDescriptor> {
-		vec![
-			NodeParameterDescriptor {
-				name: "first",
-				description: "The first input value",
-				parameter_type: NodeParameterType::Number,
-			},
-			NodeParameterDescriptor {
-				name: "second",
-				description: "The second input value",
-				parameter_type: NodeParameterType::Number,
-			},
-		]
+	fn inputs(&self) -> &[crate::node::NodeParameterDescriptor] {
+		&self.inputs
 	}
 
-	fn outputs(&self) -> Vec<crate::node::NodeParameterDescriptor> {
-		vec![NodeParameterDescriptor {
-			name: "value",
-			description: "The output value",
-			parameter_type: NodeParameterType::Number,
-		}]
+	fn outputs(&self) -> &[crate::node::NodeParameterDescriptor] {
+		&self.outputs
 	}
 
-	fn eval(
-		&self,
-		inputs: Vec<Option<crate::node::NodeParameter>>,
-	) -> Vec<crate::node::NodeParameter> {
+	fn eval(&self, inputs: Vec<Option<crate::node::NodeParameter>>) -> NodeResult {
 		let (first, second) = extract_inputs!(inputs, Number, Number);
-		return vec![NodeParameter::Number(first + second)];
+		Ok(vec![NodeParameter::Number(first + second)])
 	}
 }

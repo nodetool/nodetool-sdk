@@ -1,8 +1,8 @@
-use std::{collections::HashMap, mem::discriminant, rc::Rc};
+use std::{collections::HashMap, iter, mem::discriminant, panic, rc::Rc};
 
 use thiserror::Error;
 
-use crate::node::{AnyNode, Node, NodeParameter};
+use crate::node::{AnyError, AnyNode, Node, NodeID, NodeParamIndex, NodeParameter};
 
 #[derive(Error, Debug)]
 pub enum NodeConnectError {
@@ -26,6 +26,8 @@ pub enum NodeDisconnectError {
 pub enum GetNodeOutputsError {
 	#[error("node not found")]
 	NodeNotFound,
+	#[error("node panicked")]
+	NodeExecFailure(AnyError),
 }
 
 #[derive(Error, Debug)]
@@ -34,17 +36,15 @@ pub enum GetNodeInputsError {
 	NodeNotFound,
 }
 
-pub type NodeID = u64;
-
 /// A graph containing nodes.
 /// Each node is assigned a unique ID which is used in hashmaps and connections.
 pub struct NodeGraph {
 	pub nodes: HashMap<NodeID, AnyNode>,
 	/// mapping of node connections.
 	/// key is the node ID and index of the target node, value is the node ID and index of the source node.
-	pub parameters: HashMap<(NodeID, usize), (NodeID, usize)>,
+	pub parameters: HashMap<NodeParamIndex, NodeParamIndex>,
 	/// mapping of node IDs and their output indices to connected nodes.
-	pub connections: HashMap<(NodeID, usize), Vec<(NodeID, usize)>>,
+	pub connections: HashMap<NodeParamIndex, Vec<NodeParamIndex>>,
 	/// cache of node outputs.
 	pub outputs: HashMap<NodeID, Rc<Vec<NodeParameter>>>,
 	/// highest node ID.
@@ -95,10 +95,15 @@ impl NodeGraph {
 				.ok_or(GetNodeOutputsError::NodeNotFound)?
 				.clone(),
 		);
-		let len = node.inputs().len();
-		let mut collected_inputs: Vec<Option<NodeParameter>> = Vec::with_capacity(len);
+
+		// recursively collect all inputs from nodes connected to the inputs.
+		let mut collected_inputs: Vec<Option<NodeParameter>> =
+			iter::repeat(None).take(node.inputs().len()).collect();
+
 		for (i, entry) in collected_inputs.iter_mut().enumerate() {
-			if let Some((node_id, parameter_index)) = self.parameters.get(&(node_id, i)).cloned() {
+			if let Some(NodeParamIndex(node_id, parameter_index)) =
+				self.parameters.get(&NodeParamIndex(node_id, i)).cloned()
+			{
 				let outputs = self.get_node_outputs(node_id)?;
 				*entry = Some(outputs[parameter_index].clone());
 			} else {
@@ -106,7 +111,10 @@ impl NodeGraph {
 			}
 		}
 
-		let result = Rc::new(node.eval(collected_inputs));
+		let result = Rc::new(
+			node.eval(collected_inputs)
+				.map_err(GetNodeOutputsError::NodeExecFailure)?,
+		);
 
 		self.outputs.insert(node_id, Rc::clone(&result));
 
@@ -119,7 +127,7 @@ impl NodeGraph {
 		target_index: usize,
 	) -> Result<(), NodeDisconnectError> {
 		self.parameters
-			.remove(&(target_node, target_index))
+			.remove(&NodeParamIndex(target_node, target_index))
 			.ok_or(NodeDisconnectError::NodeNotFound)?;
 
 		self.invalidate_node(target_node);
@@ -158,13 +166,13 @@ impl NodeGraph {
 		}
 
 		self.parameters
-			.entry((to, to_index))
-			.or_insert((from, from_index));
+			.entry(NodeParamIndex(to, to_index))
+			.or_insert(NodeParamIndex(from, from_index));
 
 		self.connections
-			.entry((from, from_index))
+			.entry(NodeParamIndex(from, from_index))
 			.or_insert(Vec::new())
-			.push((to, to_index));
+			.push(NodeParamIndex(to, to_index));
 
 		Ok(())
 	}

@@ -18,12 +18,15 @@ pub fn test_add() -> anyhow::Result<()> {
 	let const1 = new_const(&mut node_graph, 1.0);
 	let const2 = new_const(&mut node_graph, 1.0);
 
-	assert_ne!(const1, const2);
+	assert_ne!(
+		const1, const2,
+		"the IDs cannot be the same for two new nodes"
+	);
 
 	let add_node = node_graph.add(Add::new());
 
-	node_graph.connect(const1, 0, add_node, 0).unwrap();
-	node_graph.connect(const2, 0, add_node, 1).unwrap();
+	node_graph.connect(const1, 0, add_node, 0)?;
+	node_graph.connect(const2, 0, add_node, 1)?;
 
 	let output = node_graph.get_node_outputs(add_node)?;
 	let data = inner::inner!(output.get(0).unwrap(), if NodeParameter::Number);

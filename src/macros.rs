@@ -11,7 +11,7 @@ macro_rules! extract_inputs {
         };
         (
             $(
-                if let NodeParameter::$variant(x) = $params[gen()].as_ref().unwrap() { *x } else {
+                if let NodeParameter::$variant(x) = $params[gen() - 1].as_ref().unwrap() { *x } else {
                     panic!("invalid parameter type")
                 },
             )+

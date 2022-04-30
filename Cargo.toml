@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 inner = "0.1.1"
+smol_str = "0.1.23"
 thiserror = "1.0.30"
 
 [dev-dependencies]
