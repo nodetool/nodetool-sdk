@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Debug, rc::Rc};
+use std::{borrow::Borrow, cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 use smol_str::SmolStr;
 
@@ -8,6 +8,7 @@ pub enum NodeParameterType {
 	Float64Array,
 	String,
 	Number,
+	Bool,
 	Node,
 	None,
 }
@@ -15,10 +16,10 @@ pub enum NodeParameterType {
 // NodeParameter is the data type for a parameter that a node can take in
 #[derive(Clone)]
 pub enum NodeParameter {
-	IntArray(Vec<i64>),
-	Float64Array(Vec<f64>),
 	String(String),
 	Number(f64),
+	Bool(bool),
+	Array(Vec<NodeParameter>),
 	Node(AnyNode),
 	None,
 }
@@ -26,11 +27,11 @@ pub enum NodeParameter {
 impl Debug for NodeParameter {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			NodeParameter::Node(n) => write!(f, "Node({:?})", n.inputs()),
-			NodeParameter::IntArray(v) => write!(f, "IntArray({:?})", v),
-			NodeParameter::Float64Array(v) => write!(f, "Float64Array({:?})", v),
+			NodeParameter::Node(n) => write!(f, "Node({:?})", n.as_ref().borrow().inputs()),
 			NodeParameter::String(s) => write!(f, "String({:?})", s),
 			NodeParameter::Number(n) => write!(f, "Number({:?})", n),
+			NodeParameter::Bool(b) => write!(f, "Bool({:?})", b),
+			NodeParameter::Array(a) => write!(f, "Array({:?})", a),
 			NodeParameter::None => write!(f, "None"),
 		}
 	}
@@ -70,11 +71,11 @@ pub trait Node {
 	fn outputs(&self) -> &[NodeParameterDescriptor];
 
 	/// Evaluates the node and returns its output.
-	fn eval(&self, inputs: Vec<Option<NodeParameter>>) -> NodeResult;
+	fn eval(&mut self, inputs: Vec<Option<NodeParameter>>) -> NodeResult;
 }
 
 pub type NodeID = u64;
-pub type AnyNode = Rc<dyn Node>;
+pub type AnyNode = Rc<RefCell<dyn Node>>;
 pub type AnyError = Box<dyn Error + Send + Sync>;
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct NodeParamIndex(pub NodeID, pub usize);

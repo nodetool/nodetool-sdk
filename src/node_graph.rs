@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter, mem::discriminant, panic, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, iter, mem::discriminant, panic, rc::Rc};
 
 use thiserror::Error;
 
@@ -65,7 +65,7 @@ impl NodeGraph {
 	/// add creates a new node and adds it to the graph, generating a new ID.
 	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
 		let id = self.max_node_id;
-		self.nodes.insert(id, Rc::new(node));
+		self.nodes.insert(id, Rc::new(RefCell::new(node)));
 		self.max_node_id += 1;
 		id
 	}
@@ -97,8 +97,9 @@ impl NodeGraph {
 		);
 
 		// recursively collect all inputs from nodes connected to the inputs.
-		let mut collected_inputs: Vec<Option<NodeParameter>> =
-			iter::repeat(None).take(node.inputs().len()).collect();
+		let mut collected_inputs: Vec<Option<NodeParameter>> = iter::repeat(None)
+			.take(node.borrow().inputs().len())
+			.collect();
 
 		for (i, entry) in collected_inputs.iter_mut().enumerate() {
 			if let Some(NodeParamIndex(node_id, parameter_index)) =
@@ -112,7 +113,8 @@ impl NodeGraph {
 		}
 
 		let result = Rc::new(
-			node.eval(collected_inputs)
+			node.borrow_mut()
+				.eval(collected_inputs)
 				.map_err(GetNodeOutputsError::NodeExecFailure)?,
 		);
 
@@ -149,12 +151,14 @@ impl NodeGraph {
 		let from_node = self
 			.nodes
 			.get(&from)
-			.ok_or(NodeConnectError::SourceNodeNotFound)?;
+			.ok_or(NodeConnectError::SourceNodeNotFound)?
+			.borrow();
 
 		let to_node = self
 			.nodes
 			.get(&to)
-			.ok_or(NodeConnectError::TargetNodeNotFound)?;
+			.ok_or(NodeConnectError::TargetNodeNotFound)?
+			.borrow();
 
 		let from_outputs = from_node.outputs();
 		let to_inputs = to_node.inputs();

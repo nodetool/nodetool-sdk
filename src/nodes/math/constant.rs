@@ -33,7 +33,7 @@ impl Node for Constant {
 		&self.outputs
 	}
 
-	fn eval(&self, _inputs: Vec<Option<crate::node::NodeParameter>>) -> NodeResult {
+	fn eval(&mut self, _inputs: Vec<Option<crate::node::NodeParameter>>) -> NodeResult {
 		Ok(vec![NodeParameter::Number(self.value)])
 	}
 }

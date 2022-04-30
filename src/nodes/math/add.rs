@@ -47,7 +47,7 @@ impl Node for Add {
 		&self.outputs
 	}
 
-	fn eval(&self, inputs: Vec<Option<crate::node::NodeParameter>>) -> NodeResult {
+	fn eval(&mut self, inputs: Vec<Option<crate::node::NodeParameter>>) -> NodeResult {
 		let (first, second) = extract_inputs!(inputs, Number, Number);
 		Ok(vec![NodeParameter::Number(first + second)])
 	}
