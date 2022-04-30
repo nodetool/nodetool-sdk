@@ -1,9 +1,16 @@
-use std::{cell::RefCell, collections::HashMap, iter, mem::discriminant, panic, rc::Rc};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
+use std::{cell::RefCell, collections::HashMap, iter, mem::discriminant, rc::Rc};
 
 use thiserror::Error;
 
-use crate::node::{AnyError, AnyNode, Node, NodeID, NodeParamIndex, NodeParameter};
+use crate::node::{AnyNode, Node, NodeID, NodeParamIndex, NodeParameter};
 
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Error, Debug)]
 pub enum NodeConnectError {
 	#[error("source node not found")]
@@ -16,6 +23,8 @@ pub enum NodeConnectError {
 	ParameterMismatch,
 }
 
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Error, Debug)]
 pub enum NodeDisconnectError {
 	#[error("node not found")]
@@ -23,14 +32,16 @@ pub enum NodeDisconnectError {
 }
 
 #[derive(Error, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum GetNodeOutputsError {
 	#[error("node not found")]
 	NodeNotFound,
 	#[error("node panicked")]
-	NodeExecFailure(AnyError),
+	NodeExecFailure(String),
 }
 
 #[derive(Error, Debug)]
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub enum GetNodeInputsError {
 	#[error("node not found")]
 	NodeNotFound,
@@ -38,19 +49,31 @@ pub enum GetNodeInputsError {
 
 /// A graph containing nodes.
 /// Each node is assigned a unique ID which is used in hashmaps and connections.
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct NodeGraph {
-	pub nodes: HashMap<NodeID, AnyNode>,
+	nodes: HashMap<NodeID, AnyNode>,
 	/// mapping of node connections.
 	/// key is the node ID and index of the target node, value is the node ID and index of the source node.
-	pub parameters: HashMap<NodeParamIndex, NodeParamIndex>,
+	parameters: HashMap<NodeParamIndex, NodeParamIndex>,
 	/// mapping of node IDs and their output indices to connected nodes.
-	pub connections: HashMap<NodeParamIndex, Vec<NodeParamIndex>>,
+	connections: HashMap<NodeParamIndex, Vec<NodeParamIndex>>,
 	/// cache of node outputs.
-	pub outputs: HashMap<NodeID, Rc<Vec<NodeParameter>>>,
+	outputs: HashMap<NodeID, Rc<Vec<NodeParameter>>>,
 	/// highest node ID.
 	pub max_node_id: NodeID,
 }
 
+impl NodeGraph {
+	/// add creates a new node and adds it to the graph, generating a new ID.
+	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
+		let id = self.max_node_id;
+		self.nodes.insert(id, Rc::new(RefCell::new(node)));
+		self.max_node_id += 1;
+		id
+	}
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 impl NodeGraph {
 	pub fn new() -> Self {
 		Self {
@@ -60,14 +83,6 @@ impl NodeGraph {
 			outputs: HashMap::new(),
 			max_node_id: 0,
 		}
-	}
-
-	/// add creates a new node and adds it to the graph, generating a new ID.
-	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
-		let id = self.max_node_id;
-		self.nodes.insert(id, Rc::new(RefCell::new(node)));
-		self.max_node_id += 1;
-		id
 	}
 
 	/// invalidates a node's output in the cache.
@@ -115,7 +130,7 @@ impl NodeGraph {
 		let result = Rc::new(
 			node.borrow_mut()
 				.eval(collected_inputs)
-				.map_err(GetNodeOutputsError::NodeExecFailure)?,
+				.map_err(|e| GetNodeOutputsError::NodeExecFailure(e.to_string()))?,
 		);
 
 		self.outputs.insert(node_id, Rc::clone(&result));

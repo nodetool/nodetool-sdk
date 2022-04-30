@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cell::RefCell, error::Error, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 use smol_str::SmolStr;
 

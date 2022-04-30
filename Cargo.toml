@@ -10,5 +10,16 @@ inner = "0.1.1"
 smol_str = "0.1.23"
 thiserror = "1.0.30"
 
+wasm-bindgen = { version = "0.2.80", optional = true, features = [
+  "serde-serialize",
+] }
+console_error_panic_hook = { version = "0.1.6", optional = true }
+wee_alloc = { version = "0.4.5", optional = true }
+serde = { version = "1.0.136", optional = true, features = ["derive"] }
+
 [dev-dependencies]
 anyhow = "1.0.53"
+
+[features]
+serde = ["dep:serde"]
+wasm = ["wasm-bindgen", "console_error_panic_hook", "wee_alloc", "serde"]
