@@ -1,10 +1,19 @@
-use crate::node::{Node, NodeParameter, NodeParameterDescriptor, NodeParameterType};
+use crate::{
+	extract_inputs,
+	node::{Node, NodeParameter, NodeParameterDescriptor, NodeParameterType},
+};
 
 pub struct Add {}
 
 impl Add {
 	pub fn new() -> Self {
 		Self {}
+	}
+}
+
+impl Default for Add {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
@@ -36,13 +45,7 @@ impl Node for Add {
 		&self,
 		inputs: Vec<Option<crate::node::NodeParameter>>,
 	) -> Vec<crate::node::NodeParameter> {
-		let first = inputs.get(0).unwrap().as_ref().unwrap();
-		let second = inputs.get(1).unwrap().as_ref().unwrap();
-
-		if let (NodeParameter::Number(first), NodeParameter::Number(second)) = (first, second) {
-			return vec![NodeParameter::Number(first + second)];
-		} else {
-			panic!("invalid parameter types")
-		}
+		let (first, second) = extract_inputs!(inputs, Number, Number);
+		return vec![NodeParameter::Number(first + second)];
 	}
 }
