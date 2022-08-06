@@ -1,6 +1,5 @@
-use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
-
 use smol_str::SmolStr;
+use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 #[derive(Clone, Debug)]
 pub enum NodeParameterType {

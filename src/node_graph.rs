@@ -9,9 +9,9 @@ use thiserror::Error;
 
 use crate::node::{AnyNode, Node, NodeID, NodeParamIndex, NodeParameter};
 
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Error, Debug)]
+#[wasm_bindgen]
 pub enum NodeConnectError {
 	#[error("source node not found")]
 	SourceNodeNotFound,
@@ -64,17 +64,6 @@ pub struct NodeGraph {
 }
 
 impl NodeGraph {
-	/// add creates a new node and adds it to the graph, generating a new ID.
-	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
-		let id = self.max_node_id;
-		self.nodes.insert(id, Rc::new(RefCell::new(node)));
-		self.max_node_id += 1;
-		id
-	}
-}
-
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
-impl NodeGraph {
 	pub fn new() -> Self {
 		Self {
 			nodes: HashMap::new(),
@@ -83,6 +72,58 @@ impl NodeGraph {
 			outputs: HashMap::new(),
 			max_node_id: 0,
 		}
+	}
+
+	pub fn connect(
+		&mut self,
+		from: u64,
+		from_index: usize,
+		to: u64,
+		to_index: usize,
+	) -> Result<(), NodeConnectError> {
+		if from == to {
+			return Err(NodeConnectError::SelfConnect);
+		}
+
+		let from_node = self
+			.nodes
+			.get(&from)
+			.ok_or(NodeConnectError::SourceNodeNotFound)?
+			.borrow();
+
+		let to_node = self
+			.nodes
+			.get(&to)
+			.ok_or(NodeConnectError::TargetNodeNotFound)?
+			.borrow();
+
+		let from_outputs = from_node.outputs();
+		let to_inputs = to_node.inputs();
+
+		if discriminant(&to_inputs[to_index].parameter_type)
+			!= discriminant(&from_outputs[from_index].parameter_type)
+		{
+			return Err(NodeConnectError::ParameterMismatch);
+		}
+
+		self.parameters
+			.entry(NodeParamIndex(to, to_index))
+			.or_insert(NodeParamIndex(from, from_index));
+
+		self.connections
+			.entry(NodeParamIndex(from, from_index))
+			.or_insert(Vec::new())
+			.push(NodeParamIndex(to, to_index));
+
+		Ok(())
+	}
+
+	/// add creates a new node and adds it to the graph, generating a new ID.
+	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
+		let id = self.max_node_id;
+		self.nodes.insert(id, Rc::new(RefCell::new(node)));
+		self.max_node_id += 1;
+		id
 	}
 
 	/// invalidates a node's output in the cache.
@@ -148,50 +189,6 @@ impl NodeGraph {
 			.ok_or(NodeDisconnectError::NodeNotFound)?;
 
 		self.invalidate_node(target_node);
-
-		Ok(())
-	}
-
-	pub fn connect(
-		&mut self,
-		from: u64,
-		from_index: usize,
-		to: u64,
-		to_index: usize,
-	) -> Result<(), NodeConnectError> {
-		if from == to {
-			return Err(NodeConnectError::SelfConnect);
-		}
-
-		let from_node = self
-			.nodes
-			.get(&from)
-			.ok_or(NodeConnectError::SourceNodeNotFound)?
-			.borrow();
-
-		let to_node = self
-			.nodes
-			.get(&to)
-			.ok_or(NodeConnectError::TargetNodeNotFound)?
-			.borrow();
-
-		let from_outputs = from_node.outputs();
-		let to_inputs = to_node.inputs();
-
-		if discriminant(&to_inputs[to_index].parameter_type)
-			!= discriminant(&from_outputs[from_index].parameter_type)
-		{
-			return Err(NodeConnectError::ParameterMismatch);
-		}
-
-		self.parameters
-			.entry(NodeParamIndex(to, to_index))
-			.or_insert(NodeParamIndex(from, from_index));
-
-		self.connections
-			.entry(NodeParamIndex(from, from_index))
-			.or_insert(Vec::new())
-			.push(NodeParamIndex(to, to_index));
 
 		Ok(())
 	}
