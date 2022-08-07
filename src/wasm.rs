@@ -1,10 +1,18 @@
-use std::rc::Rc;
-
 use crate::{node::NodeParameter, node_graph::NodeGraph};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
+#[derive(Serialize, Deserialize)]
+pub enum NodeParameterWasm {
+	A(String),
+	B(String),
+}
+
 #[wasm_bindgen]
-pub struct NodeParameterWasm {}
+pub fn into_js_value() -> Result<JsValue, serde_wasm_bindgen::Error> {
+	let js = serde_wasm_bindgen::to_value(&NodeParameterWasm::B(String::new())).unwrap();
+	Ok(js)
+}
 
 impl NodeGraph {
 	pub fn connect_wasm(
