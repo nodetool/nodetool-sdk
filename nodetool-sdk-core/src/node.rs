@@ -1,15 +1,33 @@
 use smol_str::SmolStr;
-use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc, str::FromStr};
 
 #[derive(Clone, Debug)]
 pub enum NodeParameterType {
-	IntArray,
-	Float64Array,
 	String,
 	Number,
 	Bool,
+	Array,
 	Node,
 	None,
+}
+
+#[derive(Debug)]
+pub struct ParseNodeParameterTypeErr;
+
+impl FromStr for NodeParameterType {
+	type Err = ParseNodeParameterTypeErr;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s {
+			"String" => Ok(Self::String),
+			"Number" => Ok(Self::Number),
+			"Bool" => Ok(Self::Bool),
+			"Array" => Ok(Self::Array),
+			"Node" => Ok(Self::Node),
+			"None" => Ok(Self::None),
+			_ => Err(Self::Err {}),
+		}
+	}
 }
 
 // NodeParameter is the data type for a parameter that a node can take in

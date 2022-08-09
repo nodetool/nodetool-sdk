@@ -1,9 +1,11 @@
 use std::io::Write;
 
-use crate::{
+use nodetool_sdk_core::{
 	extract_inputs,
 	node::{Node, NodeParameter, NodeParameterDescriptor, NodeParameterType, NodeResult},
 };
+
+use nodetool_sdk_macros::Node;
 
 pub struct File {
 	pub inputs: Vec<NodeParameterDescriptor>,
@@ -48,14 +50,6 @@ impl Default for File {
 }
 
 impl Node for File {
-	fn inputs(&self) -> &[crate::node::NodeParameterDescriptor] {
-		&self.inputs
-	}
-
-	fn outputs(&self) -> &[crate::node::NodeParameterDescriptor] {
-		&self.outputs
-	}
-
 	fn eval(&mut self, inputs: Vec<Option<crate::node::NodeParameter>>) -> NodeResult {
 		let (path, append, data) = extract_inputs!(inputs, String, Bool, String);
 

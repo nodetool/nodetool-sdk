@@ -9,9 +9,9 @@ use thiserror::Error;
 
 use crate::node::{AnyNode, Node, NodeID, NodeParamIndex, NodeParameter};
 
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Error, Debug)]
-#[wasm_bindgen]
 pub enum NodeConnectError {
 	#[error("source node not found")]
 	SourceNodeNotFound,
@@ -31,8 +31,8 @@ pub enum NodeDisconnectError {
 	NodeNotFound,
 }
 
-#[derive(Error, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Error, Debug)]
 pub enum GetNodeOutputsError {
 	#[error("node not found")]
 	NodeNotFound,

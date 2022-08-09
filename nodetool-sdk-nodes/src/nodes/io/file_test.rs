@@ -1,4 +1,4 @@
-use crate::node::{Node, NodeParameter};
+use nodetool_sdk_core::node::{Node, NodeParameter};
 
 #[test]
 pub fn test_file_node() -> anyhow::Result<()> {
