@@ -58,7 +58,6 @@ pub fn node_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 		})
 		.collect::<Vec<_>>();
 
-	println!("{:?}", inputs);
 	quote! {
 		impl #nodetool_core::node::Node for #ident {
 			fn inputs(&self) -> &[#nodetool_core::node::NodeParameterType] {
