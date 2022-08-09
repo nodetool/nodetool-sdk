@@ -1,6 +1,6 @@
 use core::panic;
 
-use nodetool_sdk::{
+use nodetool_sdk_core::{
 	node::NodeParameter,
 	node_graph::NodeGraph,
 	nodes::math::{add::Add, constant::Constant},

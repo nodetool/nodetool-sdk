@@ -1,0 +1,13 @@
+[package]
+name = "nodetool-sdk-nodes"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nodetool-sdk-core = { path = "../nodetool-sdk-core" }
+nodetool-sdk-macros = { path = "../nodetool-sdk-macros", features = ["internal"] }
+
+[dev-dependencies]
+anyhow = "1.0.60"
