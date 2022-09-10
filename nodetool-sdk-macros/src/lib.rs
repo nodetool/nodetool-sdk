@@ -1,18 +1,22 @@
 use darling::{
 	util::{path_to_string, PathList},
-	FromDeriveInput,
+	FromDeriveInput, FromMeta,
 };
 use nodetool_sdk_core::node::NodeParameterType;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Ident};
+use syn::{parse_macro_input, ExprArray, Ident, NestedMeta};
+
+#[derive(FromDeriveInput)]
+struct NodeParameterDeriveOpts {}
 
 #[derive(FromDeriveInput)]
 #[darling(attributes(nodetool), forward_attrs(allow, doc, cfg))]
 struct NodeDeriveOpts {
 	name: String,
-	inputs: PathList,
-	outputs: PathList,
+	description: String,
+	inputs: NestedMeta,
+	outputs: ExprArray,
 	ident: Ident,
 }
 
@@ -35,6 +39,7 @@ pub fn node_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 		name,
 		inputs,
 		outputs,
+		description,
 		ident,
 	} = NodeDeriveOpts::from_derive_input(&input).expect("wrong options!");
 
@@ -59,12 +64,16 @@ pub fn node_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 		.collect::<Vec<_>>();
 
 	quote! {
-		impl #nodetool_core::node::Node for #ident {
-			fn inputs(&self) -> &[#nodetool_core::node::NodeParameterType] {
+		impl #nodetool_core::node::NodeInfo for #ident {
+			fn name(&self) -> &'static str {
+				#name
+			}
+
+			fn inputs(&self) -> &[#nodetool_core::node::NodeParameterDescriptor] {
 				&[#(#inputs),*]
 			}
 
-			fn outputs(&self) -> &[#nodetool_core::node::NodeParameterType] {
+			fn outputs(&self) -> &[#nodetool_core::node::NodeParameterDescriptor] {
 				&[#(#outputs),*]
 			}
 		}

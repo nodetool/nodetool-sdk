@@ -44,7 +44,7 @@ pub enum NodeParameter {
 impl Debug for NodeParameter {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			NodeParameter::Node(n) => write!(f, "Node({:?})", n.as_ref().borrow().inputs()),
+			NodeParameter::Node(n) => write!(f, "Node({:?})", n.as_ref().borrow().name()),
 			NodeParameter::String(s) => write!(f, "String({:?})", s),
 			NodeParameter::Number(n) => write!(f, "Number({:?})", n),
 			NodeParameter::Bool(b) => write!(f, "Bool({:?})", b),
@@ -79,20 +79,20 @@ impl NodeParameterDescriptor {
 pub type NodeResult = Result<Vec<NodeParameter>, AnyError>;
 
 pub trait Node {
-	/// Returns a list of arguments/parameters the node takes,
-	/// with metadata such as names and descriptions.
-	fn inputs(&self) -> &[NodeParameterDescriptor];
-
-	/// Returns a list of outputs the node produces,
-	/// with metadata such as names and descriptions.
-	fn outputs(&self) -> &[NodeParameterDescriptor];
-
 	/// Evaluates the node and returns its output.
 	fn eval(&mut self, inputs: Vec<Option<NodeParameter>>) -> NodeResult;
 }
 
+pub trait NodeInfo {
+	fn name(&self) -> &'static str;
+	fn inputs(&self) -> &[NodeParameterDescriptor];
+	fn outputs(&self) -> &[NodeParameterDescriptor];
+}
+
+pub trait FullNode: Node + NodeInfo {}
+
 pub type NodeID = u64;
-pub type AnyNode = Rc<RefCell<dyn Node>>;
+pub type AnyNode = Rc<RefCell<dyn FullNode>>;
 pub type AnyError = Box<dyn Error + Send + Sync>;
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct NodeParamIndex(pub NodeID, pub usize);

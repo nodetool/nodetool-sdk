@@ -9,7 +9,7 @@ proc-macro = true
 [dependencies]
 syn = "1.0.99"
 quote = "1.0.21"
-darling = "0.14.1"
+darling = { version = "0.14.1", features = ["full"] }
 proc-macro2 = "1.0.43"
 nodetool-sdk-core = { path = "../nodetool-sdk-core" }
 

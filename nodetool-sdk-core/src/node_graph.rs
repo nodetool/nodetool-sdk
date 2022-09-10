@@ -7,7 +7,7 @@ use std::{cell::RefCell, collections::HashMap, iter, mem::discriminant, rc::Rc};
 
 use thiserror::Error;
 
-use crate::node::{AnyNode, Node, NodeID, NodeParamIndex, NodeParameter};
+use crate::node::{AnyNode, FullNode, Node, NodeID, NodeParamIndex, NodeParameter};
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -119,7 +119,7 @@ impl NodeGraph {
 	}
 
 	/// add creates a new node and adds it to the graph, generating a new ID.
-	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
+	pub fn add<T: FullNode + 'static>(&mut self, node: T) -> u64 {
 		let id = self.max_node_id;
 		self.nodes.insert(id, Rc::new(RefCell::new(node)));
 		self.max_node_id += 1;
