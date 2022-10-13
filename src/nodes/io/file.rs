@@ -2,12 +2,13 @@ use std::io::Write;
 
 use crate::{
 	extract_inputs,
-	node::{Node, NodeParameter, NodeParameterDescriptor, NodeParameterType, NodeResult},
+	node::{
+		Node, NodeDescriptor, NodeParameter, NodeParameterDescriptor, NodeParameterType, NodeResult,
+	},
 };
 
+#[derive(Debug)]
 pub struct File {
-	pub inputs: Vec<NodeParameterDescriptor>,
-	pub outputs: Vec<NodeParameterDescriptor>,
 	pub current_path: Option<String>,
 	pub current_append: Option<bool>,
 	file: Option<std::fs::File>,
@@ -16,24 +17,6 @@ pub struct File {
 impl File {
 	pub fn new() -> Self {
 		Self {
-			inputs: vec![
-				NodeParameterDescriptor::new(
-					"path",
-					"The file path to write to",
-					NodeParameterType::String,
-				),
-				NodeParameterDescriptor::new(
-					"append",
-					"whether to append to the file or to overwrite the contents",
-					NodeParameterType::Bool,
-				),
-				NodeParameterDescriptor::new(
-					"data",
-					"the data to write to the file",
-					NodeParameterType::String,
-				),
-			],
-			outputs: vec![],
 			current_append: None,
 			current_path: None,
 			file: None,
@@ -48,15 +31,7 @@ impl Default for File {
 }
 
 impl Node for File {
-	fn inputs(&self) -> &[crate::node::NodeParameterDescriptor] {
-		&self.inputs
-	}
-
-	fn outputs(&self) -> &[crate::node::NodeParameterDescriptor] {
-		&self.outputs
-	}
-
-	fn eval(&mut self, inputs: Vec<Option<crate::node::NodeParameter>>) -> NodeResult {
+	fn eval(&mut self, inputs: &[Option<crate::node::NodeParameter>]) -> NodeResult {
 		let (path, append, data) = extract_inputs!(inputs, String, Bool, String);
 
 		let did_path_change = self
@@ -80,5 +55,30 @@ impl Node for File {
 		}
 
 		Ok(vec![])
+	}
+}
+
+pub fn descriptor() -> NodeDescriptor {
+	NodeDescriptor {
+		name: "file".to_string(),
+		inputs: vec![
+			NodeParameterDescriptor::new(
+				"path",
+				"The file path to write to",
+				NodeParameterType::String,
+			),
+			NodeParameterDescriptor::new(
+				"append",
+				"whether to append to the file or to overwrite the contents",
+				NodeParameterType::Bool,
+			),
+			NodeParameterDescriptor::new(
+				"data",
+				"the data to write to the file",
+				NodeParameterType::String,
+			),
+		],
+		outputs: vec![],
+		node: Box::new(|| Box::new(File::new())),
 	}
 }

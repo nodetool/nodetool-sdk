@@ -1,6 +1,6 @@
 [package]
 name = "nodetool-sdk"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -16,6 +16,7 @@ wasm-bindgen = { version = "0.2.82", optional = true, features = [
 console_error_panic_hook = { version = "0.1.7", optional = true }
 wee_alloc = { version = "0.4.5", optional = true }
 serde = { version = "1.0.142", optional = true, features = ["derive"] }
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 anyhow = "1.0.59"

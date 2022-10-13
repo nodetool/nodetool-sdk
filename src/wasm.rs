@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::{node::NodeParameter, node_graph::NodeGraph};
 use wasm_bindgen::prelude::*;
 

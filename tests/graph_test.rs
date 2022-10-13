@@ -1,13 +1,18 @@
 use core::panic;
 
 use nodetool_sdk::{
-	node::NodeParameter,
+	node::{Node, NodeParameter},
 	node_graph::NodeGraph,
-	nodes::math::{add::Add, constant::Constant},
+	nodes::math::{
+		add::{self},
+		constant::{self, Constant},
+	},
 };
 
 fn new_const(graph: &mut NodeGraph, value: f64) -> u64 {
-	graph.add(Constant::new(value))
+	let descriptor = constant::descriptor();
+	let c = *Box::new(Constant { value });
+	graph.add(descriptor, c)
 }
 
 #[test]
@@ -23,7 +28,9 @@ pub fn test_add() -> anyhow::Result<()> {
 		"the IDs cannot be the same for two new nodes"
 	);
 
-	let add_node = node_graph.add(Add::new());
+	let descriptor = add::descriptor();
+	let add_node = (*descriptor.node)();
+	let add_node = node_graph.add(descriptor, add_node);
 
 	node_graph.connect(const1, 0, add_node, 0)?;
 	node_graph.connect(const2, 0, add_node, 1)?;

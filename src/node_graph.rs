@@ -7,11 +7,12 @@ use std::{cell::RefCell, collections::HashMap, iter, mem::discriminant, rc::Rc};
 
 use thiserror::Error;
 
-use crate::node::{AnyNode, Node, NodeID, NodeParamIndex, NodeParameter};
+use crate::node::{
+	AnyNode, Node, NodeDescriptor, NodeID, NodeParamIndex, NodeParameter, NodeParameterDescriptor,
+};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Error, Debug)]
-#[wasm_bindgen]
 pub enum NodeConnectError {
 	#[error("source node not found")]
 	SourceNodeNotFound,
@@ -51,7 +52,14 @@ pub enum GetNodeInputsError {
 /// Each node is assigned a unique ID which is used in hashmaps and connections.
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct NodeGraph {
-	nodes: HashMap<NodeID, AnyNode>,
+	nodes: HashMap<
+		NodeID,
+		(
+			Vec<NodeParameterDescriptor>,
+			Vec<NodeParameterDescriptor>,
+			AnyNode,
+		),
+	>,
 	/// mapping of node connections.
 	/// key is the node ID and index of the target node, value is the node ID and index of the source node.
 	parameters: HashMap<NodeParamIndex, NodeParamIndex>,
@@ -85,20 +93,15 @@ impl NodeGraph {
 			return Err(NodeConnectError::SelfConnect);
 		}
 
-		let from_node = self
+		let (_, from_outputs, _) = self
 			.nodes
 			.get(&from)
-			.ok_or(NodeConnectError::SourceNodeNotFound)?
-			.borrow();
+			.ok_or(NodeConnectError::SourceNodeNotFound)?;
 
-		let to_node = self
+		let (to_inputs, _, _) = self
 			.nodes
 			.get(&to)
-			.ok_or(NodeConnectError::TargetNodeNotFound)?
-			.borrow();
-
-		let from_outputs = from_node.outputs();
-		let to_inputs = to_node.inputs();
+			.ok_or(NodeConnectError::TargetNodeNotFound)?;
 
 		if discriminant(&to_inputs[to_index].parameter_type)
 			!= discriminant(&from_outputs[from_index].parameter_type)
@@ -119,9 +122,16 @@ impl NodeGraph {
 	}
 
 	/// add creates a new node and adds it to the graph, generating a new ID.
-	pub fn add<T: Node + 'static>(&mut self, node: T) -> u64 {
+	pub fn add<T: Node + 'static>(&mut self, descriptor: NodeDescriptor, node: T) -> u64 {
 		let id = self.max_node_id;
-		self.nodes.insert(id, Rc::new(RefCell::new(node)));
+		self.nodes.insert(
+			id,
+			(
+				descriptor.inputs,
+				descriptor.outputs,
+				Rc::new(RefCell::new(node)),
+			),
+		);
 		self.max_node_id += 1;
 		id
 	}
@@ -144,18 +154,15 @@ impl NodeGraph {
 			return Ok(outputs);
 		}
 
-		let node = Rc::clone(
-			&self
-				.nodes
-				.get(&node_id)
-				.ok_or(GetNodeOutputsError::NodeNotFound)?
-				.clone(),
-		);
+		let (inputs, _, node) = self
+			.nodes
+			.get(&node_id)
+			.ok_or(GetNodeOutputsError::NodeNotFound)?;
+		let node = Rc::clone(node);
 
 		// recursively collect all inputs from nodes connected to the inputs.
-		let mut collected_inputs: Vec<Option<NodeParameter>> = iter::repeat(None)
-			.take(node.borrow().inputs().len())
-			.collect();
+		let mut collected_inputs: Vec<Option<NodeParameter>> =
+			iter::repeat(None).take(inputs.len()).collect();
 
 		for (i, entry) in collected_inputs.iter_mut().enumerate() {
 			if let Some(NodeParamIndex(node_id, parameter_index)) =
@@ -170,7 +177,7 @@ impl NodeGraph {
 
 		let result = Rc::new(
 			node.borrow_mut()
-				.eval(collected_inputs)
+				.eval(&collected_inputs)
 				.map_err(|e| GetNodeOutputsError::NodeExecFailure(e.to_string()))?,
 		);
 
